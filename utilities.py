@@ -68,7 +68,11 @@ class Trie:
     
     def find_names_with_prefix(self, prefix):
         """
-        For sql queries with name name filter, this function finds the block ids on the disk of the names that share the prefix given in the query
+        For SQL queries using the LIKE 'prefix%' pattern, this function finds the block IDs on the disk
+        that correspond to the records whose names begin with the given prefix.
+        
+        It first locates the node matching the prefix in a prefix tree (Trie) structure. If the node exists,
+        it returns the block IDs of the records associated with that prefix, based on the node's rank and prefix count.
         """
         node = self.search(prefix)
         if not node:
@@ -77,6 +81,40 @@ class Trie:
         for i in range(node.prefix_count):
             block_ids.append(node.rank + i)
         return block_ids
+
+def index_graduation_year(years_with_ids):
+    """
+    Sorts the graduation years and returns two things:
+    1. A list of student IDs sorted by graduation year.
+    2. A dictionary where the keys are unique graduation years and the values are the start index of the corresponding year in the sorted list.
+
+    This method can be used to create an index on graduation year for a list of students.
+
+    :param years_with_ids: List of tuples in the form (graduation_year, student_id)
+    :return: sorted_ids, year_start_index
+    """
+    
+    # Sort the list of tuples based on the graduation year (first element of the tuple)
+    sorted_years_with_ids = sorted(years_with_ids, key=lambda x: x[0])
+    
+    # Extract the sorted IDs
+    sorted_ids = [item[1] for item in sorted_years_with_ids]
+    
+    # Create a dictionary to track the start index of each unique graduation year
+    year_start_index = {}
+    for i, (year, _) in enumerate(sorted_years_with_ids):
+        if year not in year_start_index:
+            year_start_index[year] = i  # Record the first occurrence of the graduation year
+
+    return sorted_ids, year_start_index
+
+
+# Example usage:
+years_with_ids = [(2023, 1), (2022, 2), (2023, 3), (2021, 4), (2022, 5)]
+sorted_ids, year_start_index = index_graduation_year(years_with_ids)
+
+print("Sorted IDs:", sorted_ids)
+print("Year Start Index:", year_start_index)
 
 
 
