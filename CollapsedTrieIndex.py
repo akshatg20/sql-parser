@@ -8,6 +8,34 @@ def longest_common_prefix(word1, word2):
             break 
     return word1[:common_prefix_length]
 
+def index_graduation_year(years_with_ids):
+    """
+    Sorts the graduation years and returns two things:
+    1. A list of student IDs sorted by graduation year.
+    2. A dictionary where the keys are unique graduation years and the values are the start index of the corresponding year in the sorted list.
+
+    This method can be used to create an index on graduation year for a list of students.
+
+    :param years_with_ids: List of tuples in the form ( student_id, graduation_year)
+    :return: sorted_ids, year_start_index
+    """
+    
+    # Sort the list of tuples based on the graduation year (first element of the tuple)
+    sorted_years_with_ids = sorted(years_with_ids, key=lambda x: x[1])
+    
+    # Extract the sorted IDs
+    sorted_ids = [item[0] for item in sorted_years_with_ids]
+    
+    year_start_index = {}
+    for i, (_, year) in enumerate(sorted_years_with_ids):
+        if year not in year_start_index:
+            year_start_index[year] = (i, i)  # Record the first occurrence of the graduation year as (first_index, last_index)
+        else:
+            year_start_index[year] = (year_start_index[year][0], i)  # Update the last occurrence of the graduation year
+
+
+    return sorted_ids, year_start_index
+
 class CollapsedTrieNode:
     def __init__(self, word = ""):
         self.children  = []
@@ -16,6 +44,7 @@ class CollapsedTrieNode:
         self.word_ids = []
         self.prefix_count = 0
         self.rank = -1
+        self.year_start_index = {}
 
 # Note : 1. First sort the data based on name. This will help keep the dictionary sorted by keys always
 # The intuition is that with collapsed tree number of nodes will decrease significantly and that will help during the
@@ -33,12 +62,14 @@ class CollapsedTrie:
             for child in current_node.children:
                 current_word = child.word
                 if inserted_word[match_count:]==child.word:
+                    print("complete match")
                     current_node = child
                     current_node.word_count += 1
                     current_node.word_ids.append(inserted_word_id)
                     match_count += len(child.word)
                     break
                 elif inserted_word[match_count:].startswith(child.word):
+                    print("complete partial match")
                     current_node = child
                     match_count += len(child.word)
                     break
@@ -69,6 +100,7 @@ class CollapsedTrie:
 
             # If we didn't make any progress, then insert a new node without splitting
             if match_count == last_match_count:
+                print("wtf")
                 inserted_node = CollapsedTrieNode(inserted_word[match_count:])
                 inserted_node.word_count = 1
                 inserted_node.word_ids = [inserted_word_id]
@@ -136,20 +168,41 @@ class CollapsedTrie:
 
         while stack:
             current_node = stack.pop()
-            word_ids.extend(current_node.word_ids)
-            # TODO: To get rid of the sorted step here, we need to sort the records by name in the beginning before starting the insertions
+            # TODO: remove the year from the words ids list
+            sorted_ids, year_start_index = index_graduation_year(current_node.word_ids)
+            current_node.year_start_index = year_start_index
+            word_ids.extend(sorted_ids)
             for child in reversed(current_node.children):
                 stack.append(child)
         return word_ids
 
+    def pre_order_traversal(self, node, year):
+        if not node:
+            return []
+        block_ids = []
+        print(node.year_start_index)
+        if year > list(node.year_start_index.keys())[-1]:
+            block_ids.extend(list(range(node.rank, node.rank + node.word_count)))
+        elif year < list(node.year_start_index.keys())[0]:
+            pass
+        else: 
+            block_ids.extend(list(range(node.rank, node.rank + node.year_start_index[year][1] + 1)))
 
-    # This method will return the disk locations of all the records matching the sql query with only the name filter LIKE 'prefix%'
-    # def disk_records_locations(self, prefix):
+        for child in node.children:
+            block_ids.extend(self.pre_order_traversal(child, year))
+        return block_ids
+
+    # This method will return the disk locations of all the records matching the sql query with the name filter LIKE 'prefix%' and year filter <=
+    def disk_records_locations(self, prefix, year):
+        start_node = self.search(prefix)
+        if not start_node:
+            return []
+        block_ids = self.pre_order_traversal(start_node, year)
+        return block_ids
 
     def print(self):
         if not self.root:
             return
-
         queue = [(self.root, 0)] 
         while queue:
             level_nodes = []  # Store nodes at the current level
@@ -165,9 +218,7 @@ class CollapsedTrie:
                         next_level_queue.append((child, level + 1))
 
             # Print nodes at the current level
-            print("  " * level + " ".join([f"{node.word}({node.word_ids})" for node in level_nodes]))
-
-
+            print("  " * level + " ".join([f"{node.word}({node.word_ids}, {node.word_count})" for node in level_nodes]))
             # Move to the next level
             queue = next_level_queue 
 
@@ -184,9 +235,10 @@ class CollapsedTrie:
 
 # Example usage
 trie = CollapsedTrie()
-words = [["apple",1] , ["appke", 2], ["appket", 6], ["app", 4], ["ape", 5 ], ["appl", 3], ["zoho", 10] ]
+words = [["apple",(11, 2023)] , ["appke", (2, 2022)], ["appket",(6, 2023)], ["app", (4, 2022)], ["ape", (5, 2023) ], ["appl", (3, 2023)], ["zoho", (10,2023)], ["apple", (1, 2022)] ]
 words.sort()
 for word in words:
+    print("current word :" + word[0])
     trie.insert(word[0], word[1])
     # trie.print()
     # print("------------")
@@ -206,8 +258,9 @@ print_word_rank(trie, "appket")
 print_word_rank(trie, "ape")
 print_word_rank(trie, "zoho")
 
+print(trie.search("apple").word_count)
 print("Disk layout: ")
 print(trie.disk_records_map())
 
-# print(trie.find_names_with_prefix("app"))
+print(trie.disk_records_locations("apple", 2023))
 # print(trie.find_names_with_prefix("ape"))
