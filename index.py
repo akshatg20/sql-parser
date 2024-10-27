@@ -145,8 +145,8 @@ class Trie:
 def create_year_bounds(years):
     """
     Given a list of years, create two dictionaries:
-    1. One that stores the smallest year >= the given year for each year between 1900 and 2110.
-    2. One that stores the largest year <= the given year for each year between 1900 and 2110.
+    1. One that stores the smallest year >= the given year for each year between 1900 and 2100.
+    2. One that stores the largest year <= the given year for each year between 1900 and 2100.
     
     :param years: List of years
     :return: greater_equal_dict, less_equal_dict
@@ -154,7 +154,7 @@ def create_year_bounds(years):
     # Sort the list of years
     sorted_years = sorted(years)
     
-    # Define the range from 1900 to 2110
+    # Define the range from 1900 to 2100
     full_range = list(range(1900, 2101))
     
     greater_equal_dict = {}
