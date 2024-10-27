@@ -14,7 +14,7 @@
 ##################################################### INDEX BASED ON YEAR #################################################################
 
 # global ge_dixt, le_dict
-import CollapsedTrieIndex
+from CollapsedTrieIndex import CollapsedTrie, CollapsedTrieNode
 
 def index_graduation_year(years_with_ids):
 	"""
@@ -215,7 +215,7 @@ def my_index( tuples ):
 	# YEAR-INDEX CALCULATION
 	 
 	years_with_ids = [ (t[2], t[0]) for t in tuples ]
-	 
+
 	disc_year, idx_year_start, idx_year_end  = index_graduation_year(years_with_ids) 
 	
 

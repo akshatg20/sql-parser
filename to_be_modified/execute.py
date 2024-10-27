@@ -14,7 +14,7 @@
 
 # global le_dict, ge_dict
 
-import CollapsedTrieIndex
+from CollapsedTrieIndex import CollapsedTrie, CollapsedTrieNode
 
 class TrieNode:
 	def __init__(self):
