@@ -15,8 +15,120 @@ import TrieIndex
 import CollapsedTrieIndex
 
 
-##################################################### TRIE DEFINITION #################################################################
+# Function to execute the year_index
+def execute_year_index(year, comp, idx):
+	# Reference the necessary indices and statistics
+	idx_year, ge_list, le_list = idx[0], idx[3], idx[4]
+	stats = idx[5]
+	min_year, max_year, num_ids = int(stats[0]), int(stats[1]), int(stats[2])
+	diskloc_list = []
 
+	if comp == '<=':
+		# If the year is less than the minimum year, return an empty list
+		if year < min_year:
+			return diskloc_list
+		
+		# If the year is greater than the maximum year, return all the indices
+		if year >= max_year:
+			for i in range(num_ids):
+				diskloc_list.append(i)
+			return diskloc_list
+		
+		# Otherwise calculate the valid year less than or equal to the given year
+		valid_year = YearIndex.search_year(year, le_list)
+
+		if valid_year is not None: 
+			# Find the last occurence of the valid year using the index of the next valid year
+			next_valid_year = YearIndex.search_year(valid_year+1, ge_list)
+
+			# Find the appropiate index for the next valid year
+			max_idx = 0
+			if next_valid_year is None:
+				max_idx = num_ids - 1
+			else:
+				max_idx = YearIndex.search_year(next_valid_year, idx_year) - 1
+
+			# Append all the indices till the last occurence of the valid year
+			for i in range(max_idx + 1):
+				diskloc_list.append(i)
+
+	elif comp == '>=':
+		# If the year is greater than the maximum year, return an empty list
+		if year > max_year:
+			return diskloc_list
+
+		# If the year is less than the minimum year, return all the indices
+		if year <= min_year:
+			for i in range(num_ids):
+				diskloc_list.append(i)
+			return diskloc_list
+		
+		# Otherwise calculate the valid year greater than or equal to the given year
+		valid_year = YearIndex.search_year(year, ge_list)
+
+		if valid_year is not None:
+			# Find the first occurence of the valid year using the index of the valid year
+			curr_idx = YearIndex.search_year(valid_year, idx_year)
+			max_idx = num_ids - 1
+
+			# Append all the indices from the first occurence of the valid year till the end
+			for i in range(curr_idx, max_idx+1):
+				diskloc_list.append(i)
+
+	else:
+		# Check if the given year is valid or not
+		valid_year = YearIndex.search_year(year, ge_list)
+
+		if valid_year is not None and valid_year == year :
+			# Find the first occurence of the year using the index of the valid year
+			start_idx = YearIndex.search_year(year, idx_year)
+
+			# Find the last occurence of the year using the index of the next valid year
+			next_valid_year = YearIndex.search_year(valid_year+1, ge_list)
+			end_idx = YearIndex.search_year(next_valid_year, idx_year)
+
+			# Append all the indices from the first occurence of the year till the last occurence of the year
+			for i in range(start_idx,end_idx+1):
+				diskloc_list.append(i)
+
+	return diskloc_list
+
+
+# Function to execute trie_index
+def execute_name_index(name, comp, idx):
+	# Reference the necessary indices and statistics
+	trie, stats = idx[1] , idx[5]
+	max_name_len, min_name_len = stats[3], stats[4]
+
+	diskloc_list = []
+
+	# Check if the given name length is valid or not
+	if len(name) < min_name_len or len(name) > max_name_len:
+		return diskloc_list
+	
+	if comp == 'LIKE':
+		prefix_name = name[1:-2]
+		diskloc_list = trie.disk_records_locations(prefix_name)
+	else:
+		prefix_name = name[1:-1]
+		diskloc_list = trie.disk_records_locations_exact(prefix_name)
+
+	return diskloc_list
+
+# Function to execute collapsed_trie_index
+def execute_collapsed_trie_index(name, year, comp1, comp2, idx):
+	# Reference the necessary indices and statistics
+	collapsedtrie = idx[2]
+	diskloc_list = []
+
+	if comp1 == 'LIKE':
+		prefix_name = name[1:-2]
+		diskloc_list = collapsedtrie.disk_records_locations(prefix_name, year, comp2, True)
+	else:
+		prefix_name = name[1:-1]
+		diskloc_list = collapsedtrie.disk_records_locations(prefix_name, year, comp2, False)
+
+	return diskloc_list
 
 ################################
 # Non Editable Region Starting #
@@ -25,106 +137,28 @@ def my_execute( clause, idx ):
 ################################
 #  Non Editable Region Ending  #
 ################################
-	# print(clause)
-	# print("done with printing the joint clause")
-	idx_year_start = idx[0]  
-	trie = idx[1]
-	collapsedtrie = idx[2]
-	ge_dict = idx[3]
-	le_dict = idx[4]
-	basic_stats = idx[5]
-
-	min_year = int(basic_stats[0])
-	max_year = int(basic_stats[1])
-	num_ids = int(basic_stats[2])
-	  
-	# print(type(trie))
 
 	diskloc_list = []
 
-	# for predicate in clause:
+	# for simple query
 	if len(clause) == 1:
-		predicate = clause[0]
-		# print(predicate)
-		# print(f"length of predicate = {len(predicate)}")
-		if len(predicate) == 3:
-			if predicate[0] == 'year':
+		# In case of queries like "WHERE year [comp] [YEAR_VALUE]"
+		if clause[0][0] == 'year':
+			year = int(clause[0][2])
+			diskloc_list = execute_year_index(year, clause[0][1],idx)
 
-				year = int(predicate[2])
+		# In case of queries like "WHERE name [comp] [NAME_VALUE]"
+		elif clause[0][0] == 'name':
+			name = clause[0][2]
+			diskloc_list = execute_name_index(name, clause[0][1], idx)
 
-				if predicate[1] == '<=':
-					valid_year = YearIndex.search_year(year, le_dict)
-					# valid_year = le_dict[year]
-					if valid_year is not None: 
-						# continue
-					# else:
-						next_valid_year = YearIndex.search_year(valid_year+1, ge_dict)
-						# next_valid_year = ge_dict[valid_year+1]
-						max_idx = 0
-
-						if next_valid_year is None:
-							max_idx = num_ids - 1
-						else:
-							max_idx = YearIndex.search_year(next_valid_year, idx_year_start) - 1
-							# max_idx = idx_year_start[next_valid_year] - 1
-
-						for i in range(max_idx + 1):
-							diskloc_list.append(i)
-
-				elif predicate[1] == '>=':
-					valid_year = YearIndex.search_year(year, ge_dict)
-					# valid_year = ge_dict[year]
-					if valid_year is not None:
-						# continue
-					# else:
-						curr_idx = YearIndex.search_year(valid_year, idx_year_start)
-						# curr_idx = idx_year_start[valid_year]
-						max_idx = num_ids - 1
-						for i in range(curr_idx, max_idx+1):
-							diskloc_list.append(i)
-
-				else :
-					valid_year = YearIndex.search_year(year, ge_dict)
-					# valid_year = ge_dict[year]
-					if valid_year is not None and valid_year == year :
-						# continue
-						next_valid_year = YearIndex.search_year(valid_year+1, ge_dict)
-						# next_valid_year = ge_dict[year+1]
-						start_idx = YearIndex.search_year(year, idx_year_start)
-						# start_idx = idx_year_start[year]
-						end_idx = YearIndex.search_year(next_valid_year, idx_year_start)
-						# end_idx = idx_year_start[next_valid_year]
-						for i in range(start_idx,end_idx+1):
-							diskloc_list.append(i)
-
-			elif predicate[0] == 'name':
-
-				name = predicate[2]
-
-				if predicate[1] == 'LIKE':
-					prefix_name = name[1:-2]
-					diskloc_list = trie.disk_records_locations(prefix_name)
-					# print(prefix_name)
-					# print(diskloc_list)
-				else:
-					prefix_name = name[1:-1]
-					diskloc_list = trie.disk_records_locations_exact(prefix_name)
-
+	# for joint query
 	else :
+		# In case of queries like "WHERE name [comp] [NAME_VALUE] AND year [comp] [YEAR_VALUE]"
 		name = clause[0][2]
 		year = int(clause[1][2])
+		diskloc_list = execute_collapsed_trie_index(name, year, clause[0][1], clause[1][1], idx)
 
-		if clause[0][1] == 'LIKE':
-			prefix_name = name[1:-2]
-			diskloc_list = collapsedtrie.disk_records_locations(prefix_name, year, clause[1][1], True)
-		else:
-			prefix_name = name[1:-1]
-			diskloc_list = collapsedtrie.disk_records_locations(prefix_name, year, clause[1][1], False)
-
-		# print(clause)
-		# print("Done with printing the predicate")
-		# name = predicate[2]
-		# continue
 
 	# Use this method to take a WHERE clause specification
 	# and return results of the resulting query

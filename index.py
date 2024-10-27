@@ -35,7 +35,7 @@ def my_index( tuples ):
 	# Each tuple has 3 values -- the id, name and year
 	 
 	ids = [ t[ 0 ] for t in tuples ]
-	names = [ t[ 1 ] for t in tuples ] 
+	names_len = [ len(t[1]) for t in tuples ] 
 	years = [ t[ 2 ] for t in tuples ]
 	
 	# YEAR-INDEX CALCULATION
@@ -66,37 +66,27 @@ def my_index( tuples ):
 	# insert nodes of the form (name, (id, year)) in the trie
 	collapsed_names_with_ids = [ [ t[1], (t[0], t[2]) ] for t in tuples ]
 	collapsed_trie = CollapsedTrieIndex.CollapsedTrie()
-	
-	# print("Collapsed trie intiialized")
 
 	# insert elements in the trie
 	for node in collapsed_names_with_ids:
 		collapsed_trie.insert(node[0], node[1])
-
-	# print("Elements inserted in the collapsed trie")
-	
-	# create the less_than and greater_than dictionaries for the years at each node
-	# collapsed_trie.set_valid_subtree_years(collapsed_trie.root)
-
-	# print("Valid subtree years set")
 		
-	# # assign rank to nodes present in the trie
+	# assign rank to nodes present in the trie
 	collapsed_trie.rank_trie(collapsed_trie.root, rank = 2*len(ids))
 
-	# print("Rank assigned to nodes in the collapsed trie")
-		
-	# # create the disk_layout based on collapsed names
+	# create the disk_layout based on collapsed names
 	disc_name_collapsed = collapsed_trie.disk_records_map()
-
-	# print("Disk layout created for collapsed trie")
 
 	# STAT CALCULATION
 
 	min_year = min(years)
 	max_year = max(years) 
 	num_ids = len(ids) 
+
+	max_name_len = max(names_len)
+	min_name_len = min(names_len)
 	 
-	basic_stats = [min_year, max_year, num_ids] 
+	basic_stats = [min_year, max_year, num_ids, max_name_len, min_name_len] 
 	
 
 	# SETTING UP DISK LAYOUT AND INX_STAT
