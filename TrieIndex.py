@@ -50,7 +50,7 @@ class Trie:
 
 		return word_ids
 
-	# This method will assign a rank to each prefix in the trie based on their order in the dictionary of all preixes present in the trie
+	# This method will assign a rank to each prefix in the trie based on their order in the dictionary of all prefixes present in the trie
 	def rank_trie(self, node, rank=0):
 		"""
 		Performs a DFS to calculate prefix_count and assign a rank to each node in the Trie.
@@ -99,5 +99,18 @@ class Trie:
 			return []
 		block_ids = []
 		for i in range(node.word_count):
+			block_ids.append(node.rank + i)
+		return block_ids
+	
+	# This method will return the disk locations of all the records in the trie
+	def disk_records_locations_all(self):
+		"""
+		Returns the block IDs of all the records stored in the Trie.
+		"""
+		node = self.root
+		if not node:
+			return []  # Trie is empty
+		block_ids = []
+		for i in range(node.prefix_count):
 			block_ids.append(node.rank + i)
 		return block_ids

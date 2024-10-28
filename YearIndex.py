@@ -1,3 +1,5 @@
+import TrieIndex
+
 def index_graduation_year(years_with_ids):
 	"""
 	Sorts the graduation years and returns two things:
@@ -32,6 +34,60 @@ def index_graduation_year(years_with_ids):
 		
 	return sorted_ids, year_start_index
 
+def index_year_trie(tuples, rank = 0):
+	"""
+	Index the graduation years using a Trie data structure.
+	
+	:param tuples: List of tuples containing student IDs, names, and graduation years
+	:return: list of (year, trie , index of first occur) for each graduation year
+	"""
+
+	# Sort the list of tuples based on the graduation year (third element of the tuple)
+	sorted_tuples = sorted(tuples, key=lambda x: x[2])
+
+	# Create an empty list of tuples to store the Trie objects for each year
+	year_tries_index = []
+
+	# Create a set of encountered years
+	encountered_years = set()
+
+	# Create a counter for the number of tuples inserted in the index
+	counter = 0
+	prevOccur = 0
+	sorted_ids = []
+
+	for i, (id, name, year) in enumerate(sorted_tuples):
+		# Check if the year has not been encountered before
+		if year not in encountered_years:
+			# Add the year to the set of encountered years
+			encountered_years.add(year)
+			# Create a Trie object for the year
+			trie = TrieIndex.Trie()
+			# Insert the name and ID into the Trie
+			trie.insert(name,id)
+			# Append the year in the list
+			year_tries_index.append((year, trie, counter+rank))
+			counter += 1
+
+			if i > 0:
+				prevTrie = year_tries_index[-2][1]
+				prevTrie.rank_trie(prevTrie.root, rank = rank + prevOccur)
+				prevTrie_layout = prevTrie.disk_records_map()
+				sorted_ids.extend(prevTrie_layout)
+				prevOccur = i
+
+		else:
+			# Find the Trie object corresponding to the year and insert the name and ID
+			year_tries_index[-1][1].insert(name,id)
+
+	# Rank the last trie
+	lastTrie = year_tries_index[-1][1]
+	lastTrie.rank_trie(lastTrie.root, rank = rank + prevOccur)
+	lastTrie_layout = lastTrie.disk_records_map()
+	sorted_ids.extend(lastTrie_layout)	
+	
+	return sorted_ids, year_tries_index
+
 def create_year_bounds(years):
 	"""
 	Given a list of years, create two lists of tuples:
@@ -61,7 +117,7 @@ def create_year_bounds(years):
 
 	return greater_equal_list, less_equal_list
 
-def search_year(year, tuple_list_of_years):
+def search_year(year, tuple_list_of_years, take_third_element = False):
 	"""
 	Searches for the given graduation year in the given tuple_list_of_years list using binary search and returns the corresponding id
 	"""
@@ -72,7 +128,10 @@ def search_year(year, tuple_list_of_years):
 	while(low <= high):
 		mid = low + (high - low) // 2
 		if tuple_list_of_years[mid][0] == year:
-			return tuple_list_of_years[mid][1]
+			if take_third_element:
+				return tuple_list_of_years[mid][2]
+			else:
+				return tuple_list_of_years[mid][1]
 		elif tuple_list_of_years[mid][0] < year:
 			low = mid + 1
 		else:

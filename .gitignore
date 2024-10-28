@@ -1,4 +1,21 @@
-.idx/
-.venv/
-.vscode/
-.pkl/
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter notebook checkpoints and notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Ignore virtual environment directories
+venv/
+env/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore pickle dump files
+*.pkl
+
+# Ignore csvs
+*.csv
