@@ -98,6 +98,7 @@ class CollapsedTrie:
                     current_node.word_ids = [inserted_word_id]
                     current_node.children = []
                     current_node.children.append(split_node)
+                    return
 
                 elif inserted_word[match_count] == child.word[0]:
                     # some part of the word is common while some end words dont match
